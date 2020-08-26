@@ -25,7 +25,7 @@ class NetworkGame():
         self.network = network
         self.pi = pi
         self.n = nx.number_of_nodes(self.network)
-
+        self.f = f
         if init_state is None:
             self.x = np.ones(self.n)
         else:
