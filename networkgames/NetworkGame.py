@@ -27,9 +27,7 @@ class NetworkGame:
         self.n = nx.number_of_nodes(self.network)
         self.update_rule = update_rule
         if init_state is None:
-            self.x = np.ones(self.n)
-        # elif init_state == "random":
-        #     self.x = np.round(np.random.random(self.n))
+            self.x = np.random.choice([0, 1], size=(self.n,), p=[1. / 2, 1. / 2])
         else:
             self.x = init_state.copy()
 
