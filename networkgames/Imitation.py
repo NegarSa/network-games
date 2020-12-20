@@ -75,7 +75,8 @@ def r_comp(netgame, i):
             for t in j_neighbors:
                 if netgame.x[t] == 1:
                     rh = total_payoff(netgame.network, netgame.x, netgame.pi, t) \
-                         - total_payoff(netgame.network, netgame.x, netgame.pi, k)
+                         - total_payoff(netgame.network, netgame.x, netgame.pi, i)
+                    print(rh)
                     if rh > max_t: max_t = rh
         if max_t > max_j: max_j = max_t
     return max_j
@@ -118,10 +119,12 @@ def IPRO(netgame, p=4):
         max_r = 0
 
         for k in range(netgame.n):
+            netgame.eq()
             if netgame.x[k] == 0: continue
-            if not A_any_B_playing_neighbor(netgame, k): continue # can we switch this agent?
+            if A_any_B_playing_neighbor(netgame, k): continue # can we switch this agent?
 
             r = r_comp(netgame, k)
+
             if r <= 0: continue
             pi_copy = None
             pi_copy = copy.deepcopy(netgame.pi)
@@ -129,20 +132,78 @@ def IPRO(netgame, p=4):
             pi_copy[k][1] += r + 0.001
 
             sim = None
-            sim = NetworkGame.NetworkGame(netgame.network, pi_copy, f_br, netgame.x.copy())
+            sim = NetworkGame.NetworkGame(netgame.network, pi_copy, f_im, netgame.x.copy())
 
             sim.eq()
 
             d_potential = potential(sim) - potential(netgame)
+            #print(d_potential)
 
-            if r == 0:
-                continue
-            else:
-                ratio = d_potential / (r ** p)
-                if ratio > max_ratio:
-                    max_ratio = ratio
-                    max_agent = k
-                    max_r = r
+            ratio = d_potential / (r ** p)
+            if ratio > max_ratio:
+                max_ratio = ratio
+                max_agent = k
+                max_r = r
+
+        netgame.pi[max_agent][0] += max_r + 0.001
+        netgame.pi[max_agent][1] += max_r + 0.001
+        total_incentives_given += max_r
+
+    mean = total_incentives_given / netgame.n
+    #print(mean)
+    return mean
+
+
+def Distance(netgame, p=4):
+    """
+            Targeted control of network, until all agents play A.
+
+            Parameters
+            ----------
+            p : int, optional
+                The power used in the IPRO algorithm.
+            """
+
+    if np.array_equal(netgame.x, np.ones(netgame.n, dtype=int)):
+        # All agents playing 1, can't force anyone to switch
+        return np.NaN
+
+    total_incentives_given = 0
+
+    while not np.array_equal(netgame.x, np.zeros(netgame.n, dtype=int)):
+        netgame.eq()
+
+        max_ratio = 0
+        max_agent = 0
+        max_r = 0
+
+        for k in range(netgame.n):
+            netgame.eq()
+            if netgame.x[k] == 0: continue
+            if A_any_B_playing_neighbor(netgame, k): continue # can we switch this agent?
+
+            r = r_comp(netgame, k)
+
+            if r <= 0: continue
+            pi_copy = None
+            pi_copy = copy.deepcopy(netgame.pi)
+            pi_copy[k][0] += r + 0.001
+            pi_copy[k][1] += r + 0.001
+
+            sim = None
+            sim = NetworkGame.NetworkGame(netgame.network, pi_copy, f_im, netgame.x.copy())
+
+            sim.eq()
+
+            state_self = list(netgame.partition().values())
+            state_sim = list(sim.partition().values())
+            distance = np.linalg.norm(np.array(state_self) - np.array(state_sim))
+
+            ratio = distance / (r ** p)
+            if ratio > max_ratio:
+                max_ratio = ratio
+                max_agent = k
+                max_r = r
 
         netgame.pi[max_agent][0] += max_r + 0.001
         netgame.pi[max_agent][1] += max_r + 0.001
