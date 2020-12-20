@@ -138,3 +138,64 @@ def IPRO(netgame, p=4):
     mean = total_incentives_given / netgame.n
     #print(mean)
     return mean
+
+
+def Distance(netgame, p=4):
+    """
+            Targeted control of network, until all agents play A.
+
+            Parameters
+            ----------
+            p : int, optional
+                The power used in the Distance algorithm.
+            """
+
+    total_incentives_given = 0
+
+    for i in range(netgame.n):
+        netgame.eq()
+
+        max_ratio = 0
+        max_agent = 0
+        max_r = 0
+
+        for k in range(netgame.n):
+            if netgame.x[k] == 0: continue
+            pi_copy = None
+            payoffs = netgame.pi[k].copy()
+            d = payoffs[0] - payoffs[2] + payoffs[3] - payoffs[1]
+            g = payoffs[3] - payoffs[1]
+
+            if netgame.network.degree(k) == 0: r = g
+            else: r = g - (((d * netgame.nA(k)) / netgame.network.degree(k)))
+
+            if r <= 0: continue
+            pi_copy = copy.deepcopy(netgame.pi)
+            pi_copy[k][0] += r + 0.001
+            pi_copy[k][1] += r + 0.001
+
+            sim = None
+            sim = NetworkGame.NetworkGame(netgame.network, pi_copy, f_br, netgame.x.copy())
+
+            sim.eq()
+
+            state_self = list(netgame.partition().values())
+            state_sim = list(sim.partition().values())
+            distance = np.linalg.norm(np.array(state_self) - np.array(state_sim))
+
+            if r == 0:
+                continue
+            else:
+                ratio = distance / (r ** p)
+                if ratio > max_ratio:
+                    max_ratio = ratio
+                    max_agent = k
+                    max_r = r
+
+        netgame.pi[max_agent][0] += max_r + 0.001
+        netgame.pi[max_agent][1] += max_r + 0.001
+        total_incentives_given += max_r
+
+    mean = total_incentives_given / netgame.n
+    #print(mean)
+    return mean
