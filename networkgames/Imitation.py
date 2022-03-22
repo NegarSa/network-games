@@ -197,7 +197,7 @@ def Distance(netgame, p=4):
 
             state_self = list(netgame.partition().values())
             state_sim = list(sim.partition().values())
-            distance = np.linalg.norm(np.array(state_self) - np.array(state_sim))
+            distance = np.abs((state_self) - (state_sim))
 
             ratio = distance / (r ** p)
             if ratio > max_ratio:
